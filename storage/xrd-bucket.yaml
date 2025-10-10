@@ -1,0 +1,131 @@
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xbuckets.platform.example.com
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    platform-api: storage
+spec:
+  group: platform.example.com
+  names:
+    kind: XBucket
+    plural: xbuckets
+  claimNames:
+    kind: Bucket
+    plural: buckets
+  
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              # Storage class
+              storageClass:
+                type: string
+                description: "Storage class (standard, infrequent, glacier)"
+                enum:
+                  - standard
+                  - infrequent
+                  - glacier
+                default: "standard"
+              
+              # Access control
+              publicAccess:
+                type: boolean
+                description: "Allow public access"
+                default: false
+              
+              # Versioning
+              versioning:
+                type: boolean
+                description: "Enable versioning"
+                default: false
+              
+              # Lifecycle
+              lifecycle:
+                type: object
+                description: "Lifecycle rules"
+                properties:
+                  enabled:
+                    type: boolean
+                    default: false
+                  expirationDays:
+                    type: integer
+                    minimum: 1
+                    description: "Days until objects expire"
+              
+              # Encryption
+              encryption:
+                type: object
+                description: "Encryption configuration"
+                properties:
+                  enabled:
+                    type: boolean
+                    default: true
+                  kmsKeyId:
+                    type: string
+                    description: "KMS key ID (optional)"
+              
+              # Governance
+              environment:
+                type: string
+                description: "Environment"
+                enum:
+                  - dev
+                  - staging
+                  - prod
+              
+              costCenter:
+                type: string
+                description: "Cost center"
+                pattern: '^[A-Z0-9-]+$'
+              
+              owner:
+                type: string
+                description: "Owner email"
+                pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+              
+              tags:
+                type: object
+                additionalProperties:
+                  type: string
+            
+            required:
+              - environment
+              - costCenter
+              - owner
+          
+          status:
+            type: object
+            properties:
+              bucketName:
+                type: string
+              bucketArn:
+                type: string
+              region:
+                type: string
+              status:
+                type: string
+    
+    additionalPrinterColumns:
+    - name: Bucket-Name
+      type: string
+      jsonPath: .status.bucketName
+    - name: Region
+      type: string
+      jsonPath: .status.region
+    - name: Environment
+      type: string
+      jsonPath: .spec.environment
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+

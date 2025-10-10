@@ -1,0 +1,190 @@
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xdatabases.platform.example.com
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    platform-api: database
+spec:
+  group: platform.example.com
+  names:
+    kind: XDatabase
+    plural: xdatabases
+  claimNames:
+    kind: Database
+    plural: databases
+  
+  # Versionamento da API
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    
+    # Schema com validação OpenAPIv3
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              # Parâmetros básicos
+              engine:
+                type: string
+                description: "Database engine (postgresql, mysql, redis)"
+                enum:
+                  - postgresql
+                  - mysql
+                  - redis
+              
+              engineVersion:
+                type: string
+                description: "Database engine version"
+                default: "15"
+              
+              # Sizing
+              size:
+                type: string
+                description: "Database size class"
+                enum:
+                  - small
+                  - medium
+                  - large
+                  - xlarge
+                default: "small"
+              
+              # Storage
+              storageGB:
+                type: integer
+                description: "Storage size in GB"
+                minimum: 20
+                maximum: 16384
+                default: 20
+              
+              # Networking
+              networkRef:
+                type: object
+                description: "Reference to network configuration"
+                properties:
+                  id:
+                    type: string
+                    description: "Network ID or VPC ID"
+                  subnetIds:
+                    type: array
+                    items:
+                      type: string
+                    description: "Subnet IDs for database deployment"
+                required:
+                  - id
+              
+              # High Availability
+              highAvailability:
+                type: boolean
+                description: "Enable high availability (multi-AZ)"
+                default: false
+              
+              # Backup
+              backup:
+                type: object
+                description: "Backup configuration"
+                properties:
+                  enabled:
+                    type: boolean
+                    default: true
+                  retentionDays:
+                    type: integer
+                    minimum: 1
+                    maximum: 35
+                    default: 7
+                  window:
+                    type: string
+                    description: "Preferred backup window (UTC)"
+                    pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]-([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+                    default: "03:00-04:00"
+              
+              # Security
+              publiclyAccessible:
+                type: boolean
+                description: "Whether database is publicly accessible"
+                default: false
+              
+              # Governance e Tagging
+              environment:
+                type: string
+                description: "Environment (dev, staging, prod)"
+                enum:
+                  - dev
+                  - staging
+                  - prod
+              
+              costCenter:
+                type: string
+                description: "Cost center for billing"
+                pattern: '^[A-Z0-9-]+$'
+              
+              owner:
+                type: string
+                description: "Team or owner email"
+                pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+              
+              tags:
+                type: object
+                description: "Additional custom tags"
+                additionalProperties:
+                  type: string
+            
+            # Campos obrigatórios para governança
+            required:
+              - engine
+              - size
+              - environment
+              - costCenter
+              - owner
+          
+          # Status reporting
+          status:
+            type: object
+            properties:
+              endpoint:
+                type: string
+                description: "Database connection endpoint"
+              
+              port:
+                type: integer
+                description: "Database connection port"
+              
+              status:
+                type: string
+                description: "Database status"
+              
+              connectionSecret:
+                type: object
+                description: "Reference to connection secret"
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+    
+    # Campos adicionais para impressão no kubectl
+    additionalPrinterColumns:
+    - name: Engine
+      type: string
+      jsonPath: .spec.engine
+    - name: Size
+      type: string
+      jsonPath: .spec.size
+    - name: Environment
+      type: string
+      jsonPath: .spec.environment
+    - name: Status
+      type: string
+      jsonPath: .status.status
+    - name: Endpoint
+      type: string
+      jsonPath: .status.endpoint
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+

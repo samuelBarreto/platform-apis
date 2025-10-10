@@ -1,0 +1,164 @@
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xnetworks.platform.example.com
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    platform-api: network
+spec:
+  group: platform.example.com
+  names:
+    kind: XNetwork
+    plural: xnetworks
+  claimNames:
+    kind: Network
+    plural: networks
+  
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              # Network configuration
+              cidrBlock:
+                type: string
+                description: "CIDR block for the network"
+                pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$'
+                default: "10.0.0.0/16"
+              
+              # Region
+              region:
+                type: string
+                description: "Cloud provider region"
+              
+              # Subnets
+              subnets:
+                type: object
+                description: "Subnet configuration"
+                properties:
+                  public:
+                    type: array
+                    description: "Public subnets"
+                    items:
+                      type: object
+                      properties:
+                        cidrBlock:
+                          type: string
+                          pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$'
+                        availabilityZone:
+                          type: string
+                      required:
+                        - cidrBlock
+                        - availabilityZone
+                  
+                  private:
+                    type: array
+                    description: "Private subnets"
+                    items:
+                      type: object
+                      properties:
+                        cidrBlock:
+                          type: string
+                          pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$'
+                        availabilityZone:
+                          type: string
+                      required:
+                        - cidrBlock
+                        - availabilityZone
+              
+              # Internet connectivity
+              enableNatGateway:
+                type: boolean
+                description: "Enable NAT Gateway for private subnets"
+                default: false
+              
+              # DNS
+              enableDnsHostnames:
+                type: boolean
+                description: "Enable DNS hostnames in VPC"
+                default: true
+              
+              enableDnsSupport:
+                type: boolean
+                description: "Enable DNS support in VPC"
+                default: true
+              
+              # Governance
+              environment:
+                type: string
+                description: "Environment (dev, staging, prod)"
+                enum:
+                  - dev
+                  - staging
+                  - prod
+              
+              costCenter:
+                type: string
+                description: "Cost center for billing"
+                pattern: '^[A-Z0-9-]+$'
+              
+              owner:
+                type: string
+                description: "Team or owner email"
+                pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+              
+              tags:
+                type: object
+                description: "Additional custom tags"
+                additionalProperties:
+                  type: string
+            
+            required:
+              - region
+              - environment
+              - costCenter
+              - owner
+          
+          status:
+            type: object
+            properties:
+              vpcId:
+                type: string
+                description: "VPC ID"
+              
+              publicSubnetIds:
+                type: array
+                items:
+                  type: string
+                description: "Public subnet IDs"
+              
+              privateSubnetIds:
+                type: array
+                items:
+                  type: string
+                description: "Private subnet IDs"
+              
+              status:
+                type: string
+                description: "Network status"
+    
+    additionalPrinterColumns:
+    - name: VPC-ID
+      type: string
+      jsonPath: .status.vpcId
+    - name: CIDR
+      type: string
+      jsonPath: .spec.cidrBlock
+    - name: Region
+      type: string
+      jsonPath: .spec.region
+    - name: Environment
+      type: string
+      jsonPath: .spec.environment
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+
