@@ -112,9 +112,10 @@ spec:
               # Governance e Tagging
               environment:
                 type: string
-                description: "Environment (dev, staging, prod)"
+                description: "Environment (dev, hlm, staging, prod)"
                 enum:
                   - dev
+                  - hlm
                   - staging
                   - prod
               

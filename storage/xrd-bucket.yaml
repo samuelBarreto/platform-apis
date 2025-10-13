@@ -80,6 +80,7 @@ spec:
                 description: "Environment"
                 enum:
                   - dev
+                  - hlm
                   - staging
                   - prod
               
