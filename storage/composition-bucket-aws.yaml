@@ -29,9 +29,28 @@ spec:
             forProvider:
               region: us-east-1
             providerConfigRef:
-              name: aws-default
+              name: aws-default  # Default, será sobrescrito por patch
         
         patches:
+        # Selecionar ProviderConfig baseado no ambiente (se não especificado)
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+        
+        # Override manual (se fornecido no Claim)
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional  # Só aplica se estiver definido
+        
         - type: FromCompositeFieldPath
           fromFieldPath: spec.environment
           toFieldPath: spec.forProvider.tags[environment]

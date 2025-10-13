@@ -37,7 +37,21 @@ spec:
               tags:
                 Name: ""
                 ManagedBy: "crossplane"
+            providerConfigRef:
+              name: aws-default
         patches:
+        # Selecionar ProviderConfig baseado no ambiente
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-default
+              staging: aws-default
+              prod: aws-prod
+        
         - type: FromCompositeFieldPath
           fromFieldPath: spec.environment
           toFieldPath: spec.forProvider.tags.Environment
@@ -94,10 +108,24 @@ spec:
               storageEncrypted: true
               tags:
                 ManagedBy: "crossplane"
+            providerConfigRef:
+              name: aws-default  # Default, será sobrescrito
             writeConnectionSecretToRef:
               namespace: crossplane-system
         
         patches:
+        # Selecionar ProviderConfig baseado no ambiente
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-default
+              staging: aws-default
+              prod: aws-prod
+        
         # Engine version
         - type: FromCompositeFieldPath
           fromFieldPath: spec.engineVersion

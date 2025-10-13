@@ -98,6 +98,12 @@ spec:
                 type: object
                 additionalProperties:
                   type: string
+              
+              # ProviderConfig override (opcional)
+              providerConfigName:
+                type: string
+                description: "Override ProviderConfig (opcional, usa automático se não especificado)"
+                default: ""
             
             required:
               - environment
