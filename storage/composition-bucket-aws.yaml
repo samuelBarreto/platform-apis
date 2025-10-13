@@ -6,7 +6,6 @@ metadata:
   labels:
     provider: aws
     service: storage
-    app.kubernetes.io/managed-by: argocd
 spec:
   compositeTypeRef:
     apiVersion: platform.example.com/v1alpha1
@@ -21,140 +20,30 @@ spec:
       apiVersion: pt.fn.crossplane.io/v1beta1
       kind: Resources
       resources:
-      
       # S3 Bucket
-      - name: s3-bucket
+      - name: bucket
         base:
           apiVersion: s3.aws.upbound.io/v1beta1
           kind: Bucket
           spec:
             forProvider:
-              tags:
-                ManagedBy: "crossplane"
+              region: us-east-1
+            providerConfigRef:
+              name: aws-default
         
         patches:
-        # Region
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.region
-          toFieldPath: spec.forProvider.region
-        
-        # Tags
         - type: FromCompositeFieldPath
           fromFieldPath: spec.environment
-          toFieldPath: spec.forProvider.tags.Environment
+          toFieldPath: spec.forProvider.tags[environment]
         - type: FromCompositeFieldPath
           fromFieldPath: spec.costCenter
-          toFieldPath: spec.forProvider.tags.CostCenter
+          toFieldPath: spec.forProvider.tags[cost-center]
         - type: FromCompositeFieldPath
           fromFieldPath: spec.owner
-          toFieldPath: spec.forProvider.tags.Owner
-        - type: FromCompositeFieldPath
-          fromFieldPath: metadata.labels[crossplane.io/claim-name]
-          toFieldPath: spec.forProvider.tags.Name
-        
-        # Status
+          toFieldPath: spec.forProvider.tags[owner]
         - type: ToCompositeFieldPath
           fromFieldPath: metadata.annotations[crossplane.io/external-name]
           toFieldPath: status.bucketName
         - type: ToCompositeFieldPath
           fromFieldPath: status.atProvider.arn
           toFieldPath: status.bucketArn
-        - type: ToCompositeFieldPath
-          fromFieldPath: spec.forProvider.region
-          toFieldPath: status.region
-      
-      # Bucket Versioning
-      - name: bucket-versioning
-        base:
-          apiVersion: s3.aws.upbound.io/v1beta1
-          kind: BucketVersioning
-          spec:
-            forProvider:
-              bucketSelector:
-                matchControllerRef: true
-              versioningConfiguration:
-              - status: Enabled
-        
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.versioning
-          toFieldPath: spec.forProvider.versioningConfiguration[0].status
-          transforms:
-          - type: map
-            map:
-              true: Enabled
-              false: Suspended
-      
-      # Bucket Encryption
-      - name: bucket-encryption
-        base:
-          apiVersion: s3.aws.upbound.io/v1beta1
-          kind: BucketServerSideEncryptionConfiguration
-          spec:
-            forProvider:
-              bucketSelector:
-                matchControllerRef: true
-              rule:
-              - applyServerSideEncryptionByDefault:
-                - sseAlgorithm: AES256
-        
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.encryption.enabled
-          toFieldPath: metadata.annotations[crossplane.io/enabled]
-      
-      # Block Public Access
-      - name: bucket-public-access-block
-        base:
-          apiVersion: s3.aws.upbound.io/v1beta1
-          kind: BucketPublicAccessBlock
-          spec:
-            forProvider:
-              bucketSelector:
-                matchControllerRef: true
-              blockPublicAcls: true
-              blockPublicPolicy: true
-              ignorePublicAcls: true
-              restrictPublicBuckets: true
-        
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.publicAccess
-          toFieldPath: spec.forProvider.blockPublicAcls
-          transforms:
-          - type: map
-            map:
-              true: false
-              false: true
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.publicAccess
-          toFieldPath: spec.forProvider.blockPublicPolicy
-          transforms:
-          - type: map
-            map:
-              true: false
-              false: true
-      
-      # Lifecycle Configuration (if enabled)
-      - name: bucket-lifecycle
-        base:
-          apiVersion: s3.aws.upbound.io/v1beta1
-          kind: BucketLifecycleConfiguration
-          spec:
-            forProvider:
-              bucketSelector:
-                matchControllerRef: true
-              rule:
-              - id: expire-old-objects
-                status: Enabled
-                expiration:
-                - days: 90
-        
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.lifecycle.enabled
-          toFieldPath: metadata.annotations[crossplane.io/enabled]
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.lifecycle.expirationDays
-          toFieldPath: spec.forProvider.rule[0].expiration[0].days
-
