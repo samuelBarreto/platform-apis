@@ -1,5 +1,5 @@
 ---
-apiVersion: apiextensions.crossplane.io/v2
+apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
   name: xdatabases.platform.example.com
@@ -14,7 +14,6 @@ spec:
   claimNames:
     kind: Database
     plural: databases
-  scope: Cluster
   
   # Versionamento da API
   versions:

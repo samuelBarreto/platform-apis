@@ -1,5 +1,5 @@
 ---
-apiVersion: apiextensions.crossplane.io/v2
+apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
   name: xnetworks.platform.example.com
@@ -14,7 +14,6 @@ spec:
   claimNames:
     kind: Network
     plural: networks
-  scope: Cluster
   
   versions:
   - name: v1alpha1
