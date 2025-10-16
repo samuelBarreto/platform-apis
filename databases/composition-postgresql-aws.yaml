@@ -40,6 +40,13 @@ spec:
             providerConfigRef:
               name: aws-default
         patches:
+        # Override manual tem prioridade
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
         # Selecionar ProviderConfig baseado no ambiente
         - type: FromCompositeFieldPath
           fromFieldPath: spec.environment
@@ -48,9 +55,11 @@ spec:
           - type: map
             map:
               dev: aws-dev
-              hlm: aws-default
+              hlm: aws-hml
               staging: aws-default
               prod: aws-prod
+          policy:
+            fromFieldPath: Required
         
         - type: FromCompositeFieldPath
           fromFieldPath: spec.environment
@@ -78,7 +87,30 @@ spec:
               description: "Subnet group for database"
               tags:
                 ManagedBy: "crossplane"
+            providerConfigRef:
+              name: aws-default
         patches:
+        # Override manual tem prioridade
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
+        # Selecionar ProviderConfig baseado no ambiente
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
         - type: FromCompositeFieldPath
           fromFieldPath: spec.networkRef.subnetIds
           toFieldPath: spec.forProvider.subnetIds
@@ -114,6 +146,13 @@ spec:
               namespace: crossplane-system
         
         patches:
+        # Override manual tem prioridade
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
         # Selecionar ProviderConfig baseado no ambiente
         - type: FromCompositeFieldPath
           fromFieldPath: spec.environment
@@ -122,9 +161,11 @@ spec:
           - type: map
             map:
               dev: aws-dev
-              hlm: aws-default
+              hlm: aws-hml
               staging: aws-default
               prod: aws-prod
+          policy:
+            fromFieldPath: Required
         
         # Engine version
         - type: FromCompositeFieldPath

@@ -33,8 +33,31 @@ spec:
               enableDnsSupport: true
               tags:
                 ManagedBy: "crossplane"
+            providerConfigRef:
+              name: aws-default
         
         patches:
+        # Override manual tem prioridade
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
+        # Selecionar ProviderConfig baseado no ambiente
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
         - type: FromCompositeFieldPath
           fromFieldPath: spec.cidrBlock
           toFieldPath: spec.forProvider.cidrBlock
@@ -78,8 +101,29 @@ spec:
                 matchControllerRef: true
               tags:
                 ManagedBy: "crossplane"
+            providerConfigRef:
+              name: aws-default
         
         patches:
+        # ProviderConfig patches (mesmo padrão do VPC)
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
         - type: FromCompositeFieldPath
           fromFieldPath: spec.region
           toFieldPath: spec.forProvider.region
@@ -104,8 +148,29 @@ spec:
               tags:
                 ManagedBy: "crossplane"
                 Type: "public"
+            providerConfigRef:
+              name: aws-default
         
         patches:
+        # ProviderConfig patches
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
         - type: FromCompositeFieldPath
           fromFieldPath: spec.region
           toFieldPath: spec.forProvider.region
@@ -132,8 +197,29 @@ spec:
                 matchControllerRef: true
                 matchLabels:
                   Type: "public"
+            providerConfigRef:
+              name: aws-default
         
         patches:
+        # ProviderConfig patches
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
         - type: FromCompositeFieldPath
           fromFieldPath: spec.region
           toFieldPath: spec.forProvider.region
@@ -150,8 +236,29 @@ spec:
               tags:
                 ManagedBy: "crossplane"
                 Type: "private"
+            providerConfigRef:
+              name: aws-default
         
         patches:
+        # ProviderConfig patches
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
         - type: FromCompositeFieldPath
           fromFieldPath: spec.region
           toFieldPath: spec.forProvider.region
