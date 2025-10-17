@@ -53,12 +53,13 @@ spec:
                 description: "Cloud provider region"
               
               # Networking
-              networkRef:
-                type: object
-                description: "Reference to Network resource"
-                properties:
-                  name:
-                    type: string
+              vpcId:
+                type: string
+                description: "VPC ID where instance will be launched"
+              
+              subnetId:
+                type: string
+                description: "Subnet ID where instance will be launched"
               
               subnetType:
                 type: string

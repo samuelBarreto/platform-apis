@@ -57,10 +57,12 @@ spec:
           policy:
             fromFieldPath: Required
         
-        # Network reference
+        # VPC reference
         - type: FromCompositeFieldPath
-          fromFieldPath: spec.networkRef.id
+          fromFieldPath: spec.vpcId
           toFieldPath: spec.forProvider.vpcId
+          policy:
+            fromFieldPath: Optional
         
         # Tags
         - type: FromCompositeFieldPath
@@ -329,8 +331,16 @@ spec:
               private: false
         
         - type: FromCompositeFieldPath
+          fromFieldPath: spec.subnetId
+          toFieldPath: spec.forProvider.subnetId
+          policy:
+            fromFieldPath: Optional
+        
+        - type: FromCompositeFieldPath
           fromFieldPath: spec.availabilityZone
           toFieldPath: spec.forProvider.availabilityZone
+          policy:
+            fromFieldPath: Optional
         
         # Storage
         - type: FromCompositeFieldPath
