@@ -94,6 +94,8 @@ spec:
               cidrBlocks:
                 - "0.0.0.0/0"
               description: "Allow SSH"
+              securityGroupIdSelector:
+                matchControllerRef: true
             providerConfigRef:
               name: aws-default
         
@@ -117,12 +119,6 @@ spec:
           policy:
             fromFieldPath: Required
         
-        - type: FromCompositeFieldPath
-          fromFieldPath: status.securityGroupId
-          toFieldPath: spec.forProvider.securityGroupIdSelector.matchLabels[crossplane.io/composite]
-        
-        - type: PatchSet
-          patchSetName: conditional-ssh
       
       # Security Group Rule - HTTP (conditional)
       - name: sg-rule-http
@@ -138,6 +134,8 @@ spec:
               cidrBlocks:
                 - "0.0.0.0/0"
               description: "Allow HTTP"
+              securityGroupIdSelector:
+                matchControllerRef: true
             providerConfigRef:
               name: aws-default
         
@@ -160,10 +158,6 @@ spec:
               prod: aws-prod
           policy:
             fromFieldPath: Required
-        
-        - type: FromCompositeFieldPath
-          fromFieldPath: status.securityGroupId
-          toFieldPath: spec.forProvider.securityGroupIdSelector.matchLabels[crossplane.io/composite]
       
       # Security Group Rule - HTTPS (conditional)
       - name: sg-rule-https
@@ -179,6 +173,8 @@ spec:
               cidrBlocks:
                 - "0.0.0.0/0"
               description: "Allow HTTPS"
+              securityGroupIdSelector:
+                matchControllerRef: true
             providerConfigRef:
               name: aws-default
         
@@ -201,10 +197,6 @@ spec:
               prod: aws-prod
           policy:
             fromFieldPath: Required
-        
-        - type: FromCompositeFieldPath
-          fromFieldPath: status.securityGroupId
-          toFieldPath: spec.forProvider.securityGroupIdSelector.matchLabels[crossplane.io/composite]
       
       # Security Group Rule - Egress
       - name: sg-rule-egress
@@ -220,6 +212,8 @@ spec:
               cidrBlocks:
                 - "0.0.0.0/0"
               description: "Allow all outbound traffic"
+              securityGroupIdSelector:
+                matchControllerRef: true
             providerConfigRef:
               name: aws-default
         
@@ -242,10 +236,6 @@ spec:
               prod: aws-prod
           policy:
             fromFieldPath: Required
-        
-        - type: FromCompositeFieldPath
-          fromFieldPath: status.securityGroupId
-          toFieldPath: spec.forProvider.securityGroupIdSelector.matchLabels[crossplane.io/composite]
       
       # EC2 Instance
       - name: instance
@@ -259,6 +249,8 @@ spec:
               ami: "ami-0557a15b87f6559cf"  # Ubuntu 22.04 LTS
               instanceType: t3.micro
               associatePublicIpAddress: true
+              vpcSecurityGroupIdSelector:
+                matchControllerRef: true
               tags:
                 Name: ""
                 ManagedBy: "crossplane"
@@ -355,11 +347,6 @@ spec:
           toFieldPath: spec.forProvider.userData
           policy:
             fromFieldPath: Optional
-        
-        # Security Group reference
-        - type: FromCompositeFieldPath
-          fromFieldPath: status.securityGroupId
-          toFieldPath: spec.forProvider.vpcSecurityGroupIdRefs[0].name
         
         # Tags
         - type: FromCompositeFieldPath
