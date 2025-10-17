@@ -1,0 +1,394 @@
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xinstances.aws.platform.example.com
+  labels:
+    provider: aws
+    service: compute
+    app.kubernetes.io/managed-by: argocd
+spec:
+  compositeTypeRef:
+    apiVersion: platform.example.com/v1alpha1
+    kind: XInstance
+  
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      
+      # Security Group
+      - name: security-group
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroup
+          spec:
+            forProvider:
+              description: "Security group for EC2 instance"
+              tags:
+                Name: ""
+                ManagedBy: "crossplane"
+            providerConfigRef:
+              name: aws-default
+        
+        patches:
+        # ProviderConfig selection
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
+        # Network reference
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.networkRef.id
+          toFieldPath: spec.forProvider.vpcId
+        
+        # Tags
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.labels[crossplane.io/claim-name]
+          toFieldPath: spec.forProvider.tags.Name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.forProvider.tags.Environment
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.costCenter
+          toFieldPath: spec.forProvider.tags.CostCenter
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.owner
+          toFieldPath: spec.forProvider.tags.Owner
+        
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.id
+          toFieldPath: status.securityGroupId
+      
+      # Security Group Rule - SSH
+      - name: sg-rule-ssh
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: ingress
+              protocol: tcp
+              fromPort: 22
+              toPort: 22
+              cidrBlocks:
+                - "0.0.0.0/0"
+              description: "Allow SSH"
+            providerConfigRef:
+              name: aws-default
+        
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.securityGroupId
+          toFieldPath: spec.forProvider.securityGroupIdSelector.matchLabels[crossplane.io/composite]
+        
+        - type: PatchSet
+          patchSetName: conditional-ssh
+      
+      # Security Group Rule - HTTP (conditional)
+      - name: sg-rule-http
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: ingress
+              protocol: tcp
+              fromPort: 80
+              toPort: 80
+              cidrBlocks:
+                - "0.0.0.0/0"
+              description: "Allow HTTP"
+            providerConfigRef:
+              name: aws-default
+        
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.securityGroupId
+          toFieldPath: spec.forProvider.securityGroupIdSelector.matchLabels[crossplane.io/composite]
+      
+      # Security Group Rule - HTTPS (conditional)
+      - name: sg-rule-https
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: ingress
+              protocol: tcp
+              fromPort: 443
+              toPort: 443
+              cidrBlocks:
+                - "0.0.0.0/0"
+              description: "Allow HTTPS"
+            providerConfigRef:
+              name: aws-default
+        
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.securityGroupId
+          toFieldPath: spec.forProvider.securityGroupIdSelector.matchLabels[crossplane.io/composite]
+      
+      # Security Group Rule - Egress
+      - name: sg-rule-egress
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: egress
+              protocol: "-1"
+              fromPort: 0
+              toPort: 0
+              cidrBlocks:
+                - "0.0.0.0/0"
+              description: "Allow all outbound traffic"
+            providerConfigRef:
+              name: aws-default
+        
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.securityGroupId
+          toFieldPath: spec.forProvider.securityGroupIdSelector.matchLabels[crossplane.io/composite]
+      
+      # EC2 Instance
+      - name: instance
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Instance
+          spec:
+            forProvider:
+              # Default Ubuntu 22.04 LTS AMI for us-east-1
+              # Note: This should be updated based on region
+              ami: "ami-0557a15b87f6559cf"  # Ubuntu 22.04 LTS
+              instanceType: t3.micro
+              associatePublicIpAddress: true
+              tags:
+                Name: ""
+                ManagedBy: "crossplane"
+            providerConfigRef:
+              name: aws-default
+        
+        patches:
+        # ProviderConfig selection
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          policy:
+            fromFieldPath: Optional
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.providerConfigRef.name
+          transforms:
+          - type: map
+            map:
+              dev: aws-dev
+              hlm: aws-hml
+              staging: aws-default
+              prod: aws-prod
+          policy:
+            fromFieldPath: Required
+        
+        # Instance configuration
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.instanceType
+          toFieldPath: spec.forProvider.instanceType
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.ami
+          toFieldPath: spec.forProvider.ami
+          policy:
+            fromFieldPath: Optional
+        
+        # AMI selection based on OS and region
+        - type: CombineFromComposite
+          combine:
+            variables:
+            - fromFieldPath: spec.operatingSystem
+            - fromFieldPath: spec.region
+            strategy: string
+            string:
+              fmt: "%s-%s"
+          toFieldPath: spec.forProvider.ami
+          transforms:
+          - type: map
+            map:
+              # Ubuntu 22.04 LTS AMIs by region
+              ubuntu-us-east-1: "ami-0557a15b87f6559cf"
+              ubuntu-us-west-2: "ami-0c65adc9a5c1b5d7c"
+              ubuntu-eu-west-1: "ami-0905a3c97561e0b69"
+              # Amazon Linux 2023 AMIs
+              amazon-linux-us-east-1: "ami-0c101f26f147fa7fd"
+              amazon-linux-us-west-2: "ami-0d081196e3df05f4d"
+              amazon-linux-eu-west-1: "ami-0d71ea30463e0ff8d"
+          policy:
+            fromFieldPath: Optional
+        
+        # SSH Key
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.keyName
+          toFieldPath: spec.forProvider.keyName
+        
+        # Network
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.subnetType
+          toFieldPath: spec.forProvider.associatePublicIpAddress
+          transforms:
+          - type: map
+            map:
+              public: true
+              private: false
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.availabilityZone
+          toFieldPath: spec.forProvider.availabilityZone
+        
+        # Storage
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.rootVolumeSize
+          toFieldPath: spec.forProvider.rootBlockDevice[0].volumeSize
+        
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.rootVolumeType
+          toFieldPath: spec.forProvider.rootBlockDevice[0].volumeType
+        
+        # User data
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.userData
+          toFieldPath: spec.forProvider.userData
+          policy:
+            fromFieldPath: Optional
+        
+        # Security Group reference
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.securityGroupId
+          toFieldPath: spec.forProvider.vpcSecurityGroupIdRefs[0].name
+        
+        # Tags
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.labels[crossplane.io/claim-name]
+          toFieldPath: spec.forProvider.tags.Name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.forProvider.tags.Environment
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.costCenter
+          toFieldPath: spec.forProvider.tags.CostCenter
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.owner
+          toFieldPath: spec.forProvider.tags.Owner
+        
+        # Status fields
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.id
+          toFieldPath: status.instanceId
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.publicIp
+          toFieldPath: status.publicIp
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.privateIp
+          toFieldPath: status.privateIp
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.publicDns
+          toFieldPath: status.publicDns
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.instanceState
+          toFieldPath: status.state
+

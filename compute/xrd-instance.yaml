@@ -1,0 +1,215 @@
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xinstances.platform.example.com
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    platform-api: instance
+spec:
+  group: platform.example.com
+  names:
+    kind: XInstance
+    plural: xinstances
+  claimNames:
+    kind: Instance
+    plural: instances
+  
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              # Instance configuration
+              instanceType:
+                type: string
+                description: "EC2 instance type"
+                default: "t3.micro"
+              
+              # AMI and OS
+              ami:
+                type: string
+                description: "AMI ID (optional, defaults to Ubuntu)"
+              
+              operatingSystem:
+                type: string
+                description: "Operating system"
+                enum:
+                  - ubuntu
+                  - amazon-linux
+                  - rhel
+                default: "ubuntu"
+              
+              # Region
+              region:
+                type: string
+                description: "Cloud provider region"
+              
+              # Networking
+              networkRef:
+                type: object
+                description: "Reference to Network resource"
+                properties:
+                  name:
+                    type: string
+              
+              subnetType:
+                type: string
+                description: "Subnet type (public or private)"
+                enum:
+                  - public
+                  - private
+                default: "public"
+              
+              availabilityZone:
+                type: string
+                description: "Availability zone"
+              
+              # SSH Key
+              keyName:
+                type: string
+                description: "SSH key pair name"
+              
+              # Security
+              allowSSH:
+                type: boolean
+                description: "Allow SSH access (port 22)"
+                default: true
+              
+              allowHTTP:
+                type: boolean
+                description: "Allow HTTP access (port 80)"
+                default: false
+              
+              allowHTTPS:
+                type: boolean
+                description: "Allow HTTPS access (port 443)"
+                default: false
+              
+              customSecurityGroupRules:
+                type: array
+                description: "Custom security group rules"
+                items:
+                  type: object
+                  properties:
+                    protocol:
+                      type: string
+                    fromPort:
+                      type: integer
+                    toPort:
+                      type: integer
+                    cidrBlocks:
+                      type: array
+                      items:
+                        type: string
+              
+              # Storage
+              rootVolumeSize:
+                type: integer
+                description: "Root volume size in GB"
+                minimum: 8
+                maximum: 1000
+                default: 20
+              
+              rootVolumeType:
+                type: string
+                description: "Root volume type"
+                enum:
+                  - gp3
+                  - gp2
+                  - io1
+                  - io2
+                default: "gp3"
+              
+              # User data
+              userData:
+                type: string
+                description: "User data script (base64 encoded)"
+              
+              # Governance
+              environment:
+                type: string
+                description: "Environment (dev, hlm, staging, prod)"
+                enum:
+                  - dev
+                  - hlm
+                  - staging
+                  - prod
+              
+              costCenter:
+                type: string
+                description: "Cost center for billing"
+                pattern: '^[A-Z0-9-]+$'
+              
+              owner:
+                type: string
+                description: "Team or owner email"
+                pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+              
+              tags:
+                type: object
+                description: "Additional custom tags"
+                additionalProperties:
+                  type: string
+            
+            required:
+              - instanceType
+              - region
+              - environment
+              - costCenter
+              - owner
+          
+          status:
+            type: object
+            properties:
+              instanceId:
+                type: string
+                description: "EC2 instance ID"
+              
+              publicIp:
+                type: string
+                description: "Public IP address"
+              
+              privateIp:
+                type: string
+                description: "Private IP address"
+              
+              publicDns:
+                type: string
+                description: "Public DNS name"
+              
+              state:
+                type: string
+                description: "Instance state"
+              
+              status:
+                type: string
+                description: "Overall status"
+    
+    additionalPrinterColumns:
+    - name: Instance-ID
+      type: string
+      jsonPath: .status.instanceId
+    - name: Type
+      type: string
+      jsonPath: .spec.instanceType
+    - name: Public-IP
+      type: string
+      jsonPath: .status.publicIp
+    - name: State
+      type: string
+      jsonPath: .status.state
+    - name: Environment
+      type: string
+      jsonPath: .spec.environment
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+
