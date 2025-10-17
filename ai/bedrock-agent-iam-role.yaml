@@ -1,0 +1,200 @@
+---
+# IAM Role para Bedrock Agent
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+  name: bedrock-agent-role
+  namespace: crossplane-system
+  labels:
+    app.kubernetes.io/managed-by: crossplane
+spec:
+  forProvider:
+    assumeRolePolicy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "bedrock.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole",
+            "Condition": {
+              "StringEquals": {
+                "aws:SourceAccount": "${AWS_ACCOUNT_ID}"
+              },
+              "ArnLike": {
+                "aws:SourceArn": "arn:aws:bedrock:*:${AWS_ACCOUNT_ID}:agent/*"
+              }
+            }
+          }
+        ]
+      }
+    tags:
+      Name: bedrock-agent-role
+      ManagedBy: crossplane
+      Service: bedrock
+  providerConfigRef:
+    name: aws-dev
+
+---
+# Policy para invocar modelos do Bedrock
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicy
+metadata:
+  name: bedrock-agent-model-invocation
+  namespace: crossplane-system
+  labels:
+    app.kubernetes.io/managed-by: crossplane
+spec:
+  forProvider:
+    roleSelector:
+      matchLabels:
+        app.kubernetes.io/managed-by: crossplane
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "bedrock:InvokeModel",
+              "bedrock:InvokeModelWithResponseStream"
+            ],
+            "Resource": [
+              "arn:aws:bedrock:*::foundation-model/*"
+            ]
+          }
+        ]
+      }
+  providerConfigRef:
+    name: aws-dev
+
+---
+# Policy para acessar S3 (se o agente precisar ler/escrever arquivos)
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicy
+metadata:
+  name: bedrock-agent-s3-access
+  namespace: crossplane-system
+  labels:
+    app.kubernetes.io/managed-by: crossplane
+spec:
+  forProvider:
+    roleSelector:
+      matchLabels:
+        app.kubernetes.io/managed-by: crossplane
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "s3:GetObject",
+              "s3:PutObject",
+              "s3:ListBucket"
+            ],
+            "Resource": [
+              "arn:aws:s3:::bedrock-agent-*/*",
+              "arn:aws:s3:::bedrock-agent-*"
+            ]
+          }
+        ]
+      }
+  providerConfigRef:
+    name: aws-dev
+
+---
+# Policy para logs do CloudWatch
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicy
+metadata:
+  name: bedrock-agent-cloudwatch-logs
+  namespace: crossplane-system
+  labels:
+    app.kubernetes.io/managed-by: crossplane
+spec:
+  forProvider:
+    roleSelector:
+      matchLabels:
+        app.kubernetes.io/managed-by: crossplane
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "logs:CreateLogGroup",
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws:logs:*:*:log-group:/aws/bedrock/*"
+          }
+        ]
+      }
+  providerConfigRef:
+    name: aws-dev
+
+---
+# Policy para acessar Knowledge Base (se usar)
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicy
+metadata:
+  name: bedrock-agent-knowledge-base
+  namespace: crossplane-system
+  labels:
+    app.kubernetes.io/managed-by: crossplane
+spec:
+  forProvider:
+    roleSelector:
+      matchLabels:
+        app.kubernetes.io/managed-by: crossplane
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "bedrock:Retrieve",
+              "bedrock:RetrieveAndGenerate"
+            ],
+            "Resource": "arn:aws:bedrock:*:*:knowledge-base/*"
+          }
+        ]
+      }
+  providerConfigRef:
+    name: aws-dev
+
+---
+# Policy para invocar Lambda (se usar Action Groups)
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicy
+metadata:
+  name: bedrock-agent-lambda-invocation
+  namespace: crossplane-system
+  labels:
+    app.kubernetes.io/managed-by: crossplane
+spec:
+  forProvider:
+    roleSelector:
+      matchLabels:
+        app.kubernetes.io/managed-by: crossplane
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "lambda:InvokeFunction"
+            ],
+            "Resource": "arn:aws:lambda:*:*:function:bedrock-agent-*"
+          }
+        ]
+      }
+  providerConfigRef:
+    name: aws-dev
+

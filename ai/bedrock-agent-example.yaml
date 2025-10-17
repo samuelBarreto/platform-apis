@@ -1,0 +1,128 @@
+---
+# NOTA: Este é um exemplo de configuração de Bedrock Agent
+# O Crossplane atualmente não tem provider nativo para Bedrock Agent
+# Este arquivo serve como referência para criar via AWS CLI, Terraform ou Console
+
+# Exemplo de comando AWS CLI para criar o agent:
+# aws bedrock-agent create-agent \
+#   --agent-name "my-basic-agent" \
+#   --agent-resource-role-arn "arn:aws:iam::ACCOUNT_ID:role/bedrock-agent-role" \
+#   --foundation-model "anthropic.claude-v2" \
+#   --instruction "You are a helpful assistant that can answer questions and help users." \
+#   --region us-east-1
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bedrock-agent-config
+  namespace: crossplane-system
+data:
+  agent-config.json: |
+    {
+      "agentName": "my-basic-agent",
+      "description": "Basic Bedrock Agent for demonstrations",
+      "foundationModel": "anthropic.claude-v2:1",
+      "instruction": "You are a helpful AI assistant. Answer user questions clearly and concisely.",
+      "idleSessionTTLInSeconds": 600,
+      "agentConfiguration": {
+        "enableUserInput": true
+      }
+    }
+  
+  models-available.txt: |
+    # Modelos Disponíveis no Bedrock (us-east-1)
+    
+    ## Claude (Anthropic)
+    - anthropic.claude-v2:1          (Claude 2.1)
+    - anthropic.claude-v2            (Claude 2.0)
+    - anthropic.claude-instant-v1    (Claude Instant)
+    - anthropic.claude-3-sonnet-20240229-v1:0 (Claude 3 Sonnet)
+    - anthropic.claude-3-haiku-20240307-v1:0  (Claude 3 Haiku)
+    
+    ## Titan (Amazon)
+    - amazon.titan-text-express-v1
+    - amazon.titan-text-lite-v1
+    - amazon.titan-embed-text-v1
+    
+    ## Jurassic (AI21 Labs)
+    - ai21.j2-ultra-v1
+    - ai21.j2-mid-v1
+    
+    ## Command (Cohere)
+    - cohere.command-text-v14
+    - cohere.command-light-text-v14
+  
+  permissions-summary.txt: |
+    # Permissões IAM Necessárias para Bedrock Agent
+    
+    ## 1. Trust Policy (AssumeRole)
+    - Principal: bedrock.amazonaws.com
+    - Condições: 
+      * StringEquals: aws:SourceAccount
+      * ArnLike: aws:SourceArn
+    
+    ## 2. Permissões Básicas (OBRIGATÓRIAS)
+    - bedrock:InvokeModel
+    - bedrock:InvokeModelWithResponseStream
+    
+    ## 3. Logs (RECOMENDADO)
+    - logs:CreateLogGroup
+    - logs:CreateLogStream
+    - logs:PutLogEvents
+    
+    ## 4. S3 (OPCIONAL - se usar arquivos)
+    - s3:GetObject
+    - s3:PutObject
+    - s3:ListBucket
+    
+    ## 5. Knowledge Base (OPCIONAL - se usar RAG)
+    - bedrock:Retrieve
+    - bedrock:RetrieveAndGenerate
+    
+    ## 6. Lambda (OPCIONAL - se usar Action Groups)
+    - lambda:InvokeFunction
+  
+  cli-commands.sh: |
+    #!/bin/bash
+    # Comandos úteis para Bedrock Agent
+    
+    # Substitua ACCOUNT_ID e REGION pelos seus valores
+    ACCOUNT_ID="123456789012"
+    REGION="us-east-1"
+    ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/bedrock-agent-role"
+    
+    # 1. Criar o Agent
+    aws bedrock-agent create-agent \
+      --agent-name "my-basic-agent" \
+      --agent-resource-role-arn "${ROLE_ARN}" \
+      --foundation-model "anthropic.claude-v2:1" \
+      --instruction "You are a helpful assistant." \
+      --region ${REGION}
+    
+    # 2. Listar Agents
+    aws bedrock-agent list-agents \
+      --region ${REGION}
+    
+    # 3. Preparar Agent (necessário antes de invocar)
+    aws bedrock-agent prepare-agent \
+      --agent-id <AGENT_ID> \
+      --region ${REGION}
+    
+    # 4. Criar Agent Alias
+    aws bedrock-agent create-agent-alias \
+      --agent-id <AGENT_ID> \
+      --agent-alias-name "production" \
+      --region ${REGION}
+    
+    # 5. Invocar o Agent
+    aws bedrock-agent-runtime invoke-agent \
+      --agent-id <AGENT_ID> \
+      --agent-alias-id <ALIAS_ID> \
+      --session-id "test-session-$(date +%s)" \
+      --input-text "Hello, how are you?" \
+      --region ${REGION}
+    
+    # 6. Listar modelos disponíveis
+    aws bedrock list-foundation-models \
+      --region ${REGION}
+
